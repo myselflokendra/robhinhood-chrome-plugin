@@ -13,8 +13,6 @@ export const CONFIG = {
   legendUrl: "https://robinhood.com/account/investing",
   tokenHeader: "authorization",
   timezone: "America/Los_Angeles",
-  normalAccountNumber: "860527670",
-  rothAccountNumber: "667987341",
   settings: {
     holdings: {
       stocks: true,

@@ -2,8 +2,8 @@
 // 🧭 CONTENT SCRIPT ENTRY POINT
 // ===============================
 
-import { fetchStockPositions, fetchMarketQuotes, fetchCryptoPositions, fetchOptionsOrders, fetchStockOrders } from "./api.js";
-import { exportHoldingsCSV, exportTransactionsCSV, exportCSV } from "./exporter.js";
+import { fetchAccounts, fetchStockPositions, fetchMarketQuotes, fetchCryptoPositions, fetchOptionsOrders, fetchStockOrders, fetchInstruments, fetchDividends, fetchTransfers, fetchLendingPayments, fetchInterest, fetchRewards, fetchGoldBoosts, fetchUnifiedTransfers } from "./api.js";
+import { exportHoldingsCSV, exportTransactionsCSV, exportDividendsCSV, exportDepositsCSV, exportBonusCSV, exportCSV } from "./exporter.js";
 import { logSuccess, logInfo, logError, logParty } from "./logger.js";
 import { CONFIG } from "./config.js";
 
@@ -67,17 +67,28 @@ async function createOverlay() {
 
     const launcher = document.createElement('button');
     launcher.id = 'rh-launcher-btn';
-    launcher.innerHTML = '🗂️';
+    launcher.innerHTML = '<span class="rh-tab-text">EXPORTER</span>';
     launcher.title = 'Open Robinhood Exporter';
     document.body.appendChild(launcher);
 
-    // Initialize checkbox states from saved settings
+    const toggleDrawer = (show) => {
+      container.classList.toggle('visible', show);
+      launcher.classList.toggle('hidden', show);
+    };
+
+    launcher.addEventListener('click', () => toggleDrawer(true));
+    document.getElementById('rh-close-btn').addEventListener('click', () => toggleDrawer(false));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && container.classList.contains('visible')) {
+        toggleDrawer(false);
+      }
+    });
+
     document.getElementById('hold_stocks').checked = !!settings.holdings.stocks;
     document.getElementById('hold_crypto').checked = !!settings.holdings.crypto;
     document.getElementById('tx_stocks').checked = !!settings.transactions.stocks;
     document.getElementById('tx_options').checked = !!settings.transactions.options;
-
-    launcher.addEventListener('click', () => container.classList.toggle('visible'));
 
     const getVal = (id) => document.getElementById(id).checked;
 
@@ -172,47 +183,57 @@ function waitForToken() {
 }
 
 // ===============================
-// 🚀 PIPELINE (per account)
+// 🚀 PIPELINE 
 // ===============================
 
-async function runAccountPipeline(accountNumber, accountLabel, cutoffDate, settings, setStatus) {
-  logInfo(`Running pipeline for ${accountLabel}`, { accountNumber, cutoffDate });
+async function fetchFullAccountData(accountNumber, accountLabel, cutoffDate, settings, setStatus, allAccountNumbers = [], globalRewards = [], globalBoosts = [], globalTransfers = []) {
+  if (!accountNumber) return null;
+  setStatus(`📋 Fetching ${accountLabel} data...`);
+  
+  const accountQuery = allAccountNumbers.length > 0 ? allAccountNumbers : [accountNumber];
 
-  // Holdings
-  if (settings.holdings.stocks) {
-    setStatus(`📊 Fetching ${accountLabel} holdings...`);
-    const positions = await fetchStockPositions(accountNumber);
-    if (positions?.results?.length) {
-      const instrumentIds = positions.results.map(p => p.instrument_id).filter(Boolean);
-      const priceMap = await fetchMarketQuotes(instrumentIds);
-      exportHoldingsCSV(positions, priceMap, accountLabel);
-      logSuccess(`${accountLabel} holdings exported`);
-    }
-  }
+  const [stockOrders, optionsOrders, dividends, transfers, lendingPayments, interestPayments] = await Promise.all([
+    settings.transactions.stocks ? fetchStockOrders(accountNumber, cutoffDate) : [],
+    settings.transactions.options ? fetchOptionsOrders(accountNumber, cutoffDate) : [],
+    settings.transactions.stocks ? fetchDividends(accountNumber, cutoffDate) : [],
+    settings.transactions.stocks ? fetchTransfers(cutoffDate) : [],
+    settings.transactions.stocks ? fetchLendingPayments(accountQuery, cutoffDate) : [],
+    settings.transactions.stocks ? fetchInterest(accountQuery, cutoffDate) : []
+  ]);
 
-  // Crypto (not account-specific — same for both, exported once)
-  if (settings.holdings.crypto && accountLabel === "normal") {
-    setStatus(`🪙 Fetching crypto holdings...`);
-    const cryptoPositions = await fetchCryptoPositions();
-    if (cryptoPositions?.results?.length) {
-      exportCSV(cryptoPositions, "crypto", "crypto");
-    }
-  }
+  const filteredLending = lendingPayments.filter(p => p.account_number === accountNumber);
+  filteredLending.forEach(p => p._isLending = true);
 
-  // Transactions (stocks + options merged)
-  if (settings.transactions.stocks || settings.transactions.options) {
-    setStatus(`📋 Fetching ${accountLabel} transactions...`);
-    const stockOrders = settings.transactions.stocks
-      ? await fetchStockOrders(accountNumber, cutoffDate)
-      : [];
-    const optionsOrders = settings.transactions.options
-      ? await fetchOptionsOrders(accountNumber, cutoffDate)
-      : [];
-    if (stockOrders.length || optionsOrders.length) {
-      exportTransactionsCSV(stockOrders, optionsOrders, accountLabel);
-      logSuccess(`${accountLabel} transactions exported`);
-    }
-  }
+  const filteredInterest = interestPayments.filter(p => p.account_number === accountNumber);
+  
+  const filteredRewards = globalRewards.filter(r => {
+    const accNum = r.data?.reward?.rhs_account_number;
+    return accNum ? accNum === accountNumber : accountLabel === "Individual";
+  });
+
+  const filteredBoosts = globalBoosts.filter(b => b.account_number === accountNumber);
+
+  return { 
+    stockOrders, 
+    optionsOrders, 
+    dividends: [...dividends, ...filteredLending], 
+    transfers,
+    interest: filteredInterest,
+    rewards: filteredRewards,
+    boosts: filteredBoosts,
+    unifiedTransfers: globalTransfers // Filtered in exporter but we can pass all
+  };
+}
+
+async function resolveSymbolsForData(orders = [], dividends = []) {
+  const instrumentUrls = [
+    ...orders.map(o => o.instrument),
+    ...dividends.map(d => d.instrument)
+  ].filter(Boolean);
+  const uniqueUrls = [...new Set(instrumentUrls)];
+  if (!uniqueUrls.length) return new Map();
+  const instrumentIds = uniqueUrls.map(url => url.split('/').filter(Boolean).pop());
+  return await fetchInstruments(instrumentIds);
 }
 
 async function runRobinhoodPipeline(cutoffDate, statusEl) {
@@ -224,12 +245,87 @@ async function runRobinhoodPipeline(cutoffDate, statusEl) {
   }
 
   const token = await waitForToken();
-  if (!token) {
-    throw new Error("Could not find auth token. Try refreshing the page.");
+  if (!token) throw new Error("Could not find auth token. Try refreshing the page.");
+
+  // 1. Discover all accounts
+  setStatus("🔍 Discovering accounts...");
+  const accounts = await fetchAccounts();
+  if (!accounts.length) throw new Error("No accounts found.");
+
+  const allAccountIds = accounts.map(a => a.account_number);
+  
+  // 2. Fetch Rewards globally once
+  setStatus("🎁 Fetching rewards...");
+  const globalRewards = await fetchRewards();
+
+  setStatus("🚀 Fetching Gold boosts...");
+  const globalBoosts = await fetchGoldBoosts();
+
+  setStatus("💸 Fetching unified transfers...");
+  const globalTransfers = await fetchUnifiedTransfers(cutoffDate);
+
+  // Categorize accounts
+  const individualAccounts = accounts.filter(a => a.brokerage_account_type === 'individual');
+  const iraAccounts = accounts.filter(a => a.brokerage_account_type.startsWith('ira_'));
+
+  // 3. Process Holdings
+  if (settings.holdings.stocks) {
+    for (const acc of accounts) {
+      const label = acc.brokerage_account_type.replace('ira_', '').toUpperCase();
+      setStatus(`📊 Fetching ${label} holdings...`);
+      const positions = await fetchStockPositions(acc.account_number);
+      if (positions?.results?.length) {
+        const instrumentIds = positions.results.map(p => p.instrument_id).filter(Boolean);
+        const priceMap = await fetchMarketQuotes(instrumentIds);
+        exportHoldingsCSV(positions, priceMap, label.toLowerCase());
+      }
+    }
   }
 
-  await runAccountPipeline(CONFIG.normalAccountNumber, "normal", cutoffDate, settings, setStatus);
-  await runAccountPipeline(CONFIG.rothAccountNumber, "roth", cutoffDate, settings, setStatus);
+  // Crypto
+  if (settings.holdings.crypto) {
+    setStatus("🪙 Fetching crypto holdings...");
+    const cryptoPositions = await fetchCryptoPositions();
+    if (cryptoPositions?.results?.length) exportCSV(cryptoPositions, "crypto", "crypto");
+  }
+
+  // 4. Process Individual Accounts (Orders, Dividends, etc.)
+  for (const acc of individualAccounts) {
+    const data = await fetchFullAccountData(acc.account_number, "Individual", cutoffDate, settings, setStatus, allAccountIds, globalRewards, globalBoosts, globalTransfers);
+    if (data) {
+      const symbolMap = await resolveSymbolsForData(data.stockOrders, data.dividends);
+      exportTransactionsCSV(data.stockOrders, data.optionsOrders, "individual", symbolMap);
+      exportDividendsCSV(data.dividends, "Individual", symbolMap);
+      exportDepositsCSV(data.unifiedTransfers, acc.account_number, "individual");
+      exportBonusCSV(data.dividends, data.transfers, data.interest, data.rewards, data.boosts, "individual");
+    }
+  }
+
+  // 5. Process IRA Accounts (Merged Dividends, separate Orders)
+  if (iraAccounts.length) {
+    let allIraDivs = [];
+    let allIraOrders = [];
+
+    for (const acc of iraAccounts) {
+      const label = acc.brokerage_account_type === 'ira_roth' ? 'Roth' : 'Traditional';
+      const data = await fetchFullAccountData(acc.account_number, label, cutoffDate, settings, setStatus, allAccountIds, globalRewards, globalBoosts, globalTransfers);
+      if (data) {
+        allIraDivs.push(...data.dividends.map(d => ({ ...d, _entityLabel: label })));
+        allIraOrders.push(...data.stockOrders);
+        
+        // Export separate orders/deposits for this IRA
+        const symbolMap = await resolveSymbolsForData(data.stockOrders, data.dividends);
+        exportTransactionsCSV(data.stockOrders, data.optionsOrders, label.toLowerCase(), symbolMap);
+        exportDepositsCSV(data.unifiedTransfers, acc.account_number, label.toLowerCase());
+        exportBonusCSV(data.dividends, data.transfers, data.interest, data.rewards, data.boosts, label.toLowerCase());
+      }
+    }
+
+    if (allIraDivs.length) {
+      const symbolMap = await resolveSymbolsForData(allIraOrders, allIraDivs);
+      exportDividendsCSV(allIraDivs, "IRA", symbolMap);
+    }
+  }
 
   logParty("Pipeline completed for all accounts");
 }
@@ -240,29 +336,20 @@ async function runRobinhoodPipeline(cutoffDate, statusEl) {
 
 const init = async () => {
   if (!window.location.hostname.includes('robinhood.com')) return;
-
   logInfo("Robinhood detected, starting interceptor...");
-
   if (!sessionStorage.getItem('rh_clear_flag')) {
     sessionStorage.removeItem('rh_token');
     sessionStorage.setItem('rh_clear_flag', 'true');
   }
-
   injectInterceptor();
-
   (async () => {
     const token = await waitForToken();
     if (token) logSuccess("Token pre-captured on page load");
   })();
-
   const injectWhenReady = () => {
-    if (document.body) {
-      createOverlay();
-    } else {
-      setTimeout(injectWhenReady, 50);
-    }
+    if (document.body) createOverlay();
+    else setTimeout(injectWhenReady, 50);
   };
-
   injectWhenReady();
 };
 
