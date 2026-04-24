@@ -1,0 +1,44 @@
+<h2>Robinhood Exporter</h2>
+
+<div class="rh-section">
+  <div class="rh-section-title">Get Current Holdings</div>
+  <div class="rh-control">
+    <label for="hold_stocks">Stocks</label>
+    <label class="rh-switch">
+      <input type="checkbox" id="hold_stocks">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="rh-control">
+    <label for="hold_crypto">Crypto</label>
+    <label class="rh-switch">
+      <input type="checkbox" id="hold_crypto">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="rh-section">
+  <div class="rh-section-title">Get Transactions</div>
+  <div class="rh-control">
+    <label for="tx_stocks">Stocks</label>
+    <label class="rh-switch">
+      <input type="checkbox" id="tx_stocks">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="rh-control">
+    <label for="tx_options">Options</label>
+    <label class="rh-switch">
+      <input type="checkbox" id="tx_options">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="rh-control">
+    <label for="rh-cutoff-date">From date</label>
+    <input type="date" id="rh-cutoff-date">
+  </div>
+</div>
+
+<button id="rh-download-btn">Download</button>
+<div id="rh-status-txt" class="rh-status"></div>

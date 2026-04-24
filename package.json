@@ -1,0 +1,22 @@
+{
+  "name": "robinhood-exporter",
+  "version": "2.0.0",
+  "description": "Robinhood Data Exporter Chrome Extension",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node watch.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myselflokendra/robhinhood-chrome-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/myselflokendra/robhinhood-chrome-plugin/issues"
+  },
+  "homepage": "https://github.com/myselflokendra/robhinhood-chrome-plugin#readme",
+  "license": "ISC"
+}

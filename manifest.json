@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Robinhood Data Exporter",
+  "version": "2.0",
+  "description": "Fetch Robinhood forex quotes using content scripts",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.robinhood.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://robinhood.com/*"],
+      "js": ["dist/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/interceptor.js", "dist/popup.html", "dist/popup.css"],
+      "matches": ["https://robinhood.com/*"]
+    }
+  ]
+}
+
