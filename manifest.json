@@ -3,22 +3,58 @@
   "name": "Robinhood Data Exporter",
   "version": "2.0",
   "description": "Fetch Robinhood forex quotes using content scripts",
-  "permissions": ["storage"],
-  "host_permissions": [
-    "https://api.robinhood.com/*"
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "identity"
   ],
+  "host_permissions": [
+    "https://api.robinhood.com/*",
+    "https://sheets.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "23244760300-jfl09g2h4ctqip2tvpjlfh6hf4ck3d5c.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icon.png",
+      "32": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
   "content_scripts": [
     {
-      "matches": ["https://robinhood.com/*"],
-      "js": ["dist/content.js"],
+      "matches": [
+        "https://robinhood.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["dist/interceptor.js", "dist/popup.html", "dist/popup.css"],
-      "matches": ["https://robinhood.com/*"]
+      "resources": [
+        "interceptor.js",
+        "popup.html",
+        "popup.css"
+      ],
+      "matches": [
+        "https://robinhood.com/*"
+      ]
     }
   ]
 }
-

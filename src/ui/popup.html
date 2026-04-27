@@ -1,0 +1,76 @@
+<button id="rh-close-btn">&times;</button>
+<h2>Robinhood Exporter</h2>
+
+<!-- Scrollable account sections -->
+<div class="rh-main-grid">
+  <!-- INDIVIDUAL -->
+  <div class="rh-account-block">
+    <div class="rh-account-header">Individual</div>
+    <div class="rh-sub-section">
+      <div class="rh-sub-title">Current Holdings</div>
+      <div class="rh-control-grid">
+        <label><input type="checkbox" id="ind_h_stocks"> Stocks</label>
+        <label><input type="checkbox" id="ind_h_crypto"> Crypto</label>
+      </div>
+    </div>
+    <div class="rh-sub-section">
+      <div class="rh-sub-title">Transactions</div>
+      <div class="rh-control-grid">
+        <label><input type="checkbox" id="ind_t_stocks">  Stocks</label>
+        <label><input type="checkbox" id="ind_t_options"> Options</label>
+        <label><input type="checkbox" id="ind_t_crypto">  Crypto</label>
+        <label><input type="checkbox" id="ind_t_div">     Dividend</label>
+        <label><input type="checkbox" id="ind_t_dep">     Deposited</label>
+        <label><input type="checkbox" id="ind_t_bonus">   Bonus</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- IRA -->
+  <div class="rh-account-block">
+    <div class="rh-account-header">IRA</div>
+    <div class="rh-sub-section">
+      <div class="rh-sub-title">Current Holdings</div>
+      <div class="rh-control-grid">
+        <label><input type="checkbox" id="ira_h_stocks"> Stocks</label>
+        <label><input type="checkbox" id="ira_h_crypto"> Crypto</label>
+      </div>
+    </div>
+    <div class="rh-sub-section">
+      <div class="rh-sub-title">Transactions</div>
+      <div class="rh-control-grid">
+        <label><input type="checkbox" id="ira_t_stocks">  Stocks</label>
+        <label><input type="checkbox" id="ira_t_options"> Options</label>
+        <label><input type="checkbox" id="ira_t_crypto">  Crypto</label>
+        <label><input type="checkbox" id="ira_t_div">     Dividend</label>
+        <label><input type="checkbox" id="ira_t_dep">     Deposited</label>
+        <label><input type="checkbox" id="ira_t_bonus">   Bonus</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky footer -->
+<div class="rh-footer">
+  <div class="rh-date-row">
+    <label for="rh-cutoff-date" class="rh-footer-label">From Date</label>
+    <input type="date" id="rh-cutoff-date" class="rh-date-input">
+  </div>
+
+  <div class="rh-footer-checks">
+    <label><input type="checkbox" id="download_csv"> Download CSV</label>
+    <label><input type="checkbox" id="google_sync"> Sync to Google Sheets</label>
+  </div>
+
+  <div class="rh-sheets-row" id="rh-sheets-owner-row">
+    <label for="rh-sheets-owner" class="rh-footer-label">Sheets Account</label>
+    <select id="rh-sheets-owner" class="rh-select">
+      <option value="deepika_prod">Deepika — Production</option>
+      <option value="lokendra_prod">Lokendra — Production</option>
+      <option value="lokendra_test">Lokendra — Test</option>
+    </select>
+  </div>
+
+  <button id="rh-download-btn">Download &amp; Sync</button>
+  <div id="rh-status-txt" class="rh-status"></div>
+</div>
