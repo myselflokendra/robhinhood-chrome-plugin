@@ -234,9 +234,11 @@ async function handleBatchSync(items, tabId) {
       // TRANSACTIONS PROCESSING (Surgical Shift)
       // ==========================================
       reportProgress(`☁️ Syncing data into ${sheetName}...`);
-      // FORMULA render option preserves formula strings (=A2*B2) so the PUT
-      // below doesn't replace them with their last-computed numeric values.
-      const data = await callSheetsAPI(`/values/${encodeURIComponent(sheetName)}!A:V?valueRenderOption=FORMULA`, 'GET');
+      // FORMULA preserves formula strings so the PUT below doesn't overwrite them
+      // with their last-computed values. FORMATTED_STRING makes date cells return
+      // their display string ("15/03/2024") instead of a serial number (45365),
+      // which is required for duplicate detection to work correctly.
+      const data = await callSheetsAPI(`/values/${encodeURIComponent(sheetName)}!A:V?valueRenderOption=FORMULA&dateTimeRenderOption=FORMATTED_STRING`, 'GET');
       const currentValues = data.values || [];
       if (currentValues.length === 0) currentValues.push(new Array(22).fill("")); // Ensure at least a header row exists
       
