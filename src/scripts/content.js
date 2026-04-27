@@ -351,27 +351,30 @@ async function runRobinhoodPipeline(cutoffDate, statusEl) {
             }
           });
         }
-        // ✅ FIX: options fields are inside legs[], not top-level
-        for (const o of data.optionsOrders.filter(o => o.state === "filled")) {
-          const leg  = o.legs?.[0] || {};
-          const execs = leg.executions || [];
-          const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
-          const avgPx    = totalQty > 0
-            ? execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty
-            : 0;
-          syncBatch.push({
-            type: 'TRANSACTION',
-            payload: {
-              ticker:       o.chain_symbol || "UNKNOWN",
-              date:         o.created_at,
-              quantity:     o.quantity,
-              price:        avgPx,
-              side:         leg.side || "N/A",
-              accountLabel: "Individual",
-              // note triggers "option column" in background.js
-              note: `${o.quantity} ${(leg.option_type||'OPTION').toUpperCase()} $${leg.strike_price} EXP ${leg.expiration_date}`
-            }
-          });
+        // Sync ALL legs of each options order (multi-leg spreads = multiple rows)
+        for (const o of data.optionsOrders.filter(o => ["filled","partially_filled"].includes(o.state))) {
+          const legs    = o.legs || [];
+          const numLegs = legs.length || 1;
+          for (const leg of legs) {
+            const execs    = leg.executions || [];
+            const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
+            const avgPx    = totalQty > 0
+              ? execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty
+              : Number(o.processed_premium || 0) / numLegs;
+            syncBatch.push({
+              type: 'TRANSACTION',
+              payload: {
+                ticker:       o.chain_symbol || "UNKNOWN",
+                date:         o.created_at,
+                quantity:     o.quantity,
+                price:        avgPx,
+                side:         leg.side || "N/A",
+                accountLabel: "Individual",
+                // note triggers "option column" in background.js
+                note: `${o.quantity} ${(leg.option_type||'OPTION').toUpperCase()} $${leg.strike_price} EXP ${leg.expiration_date}`
+              }
+            });
+          }
         }
       }
     }
@@ -448,26 +451,29 @@ async function runRobinhoodPipeline(cutoffDate, statusEl) {
               }
             });
           }
-          // ✅ FIX: options fields inside legs[]
-          for (const o of data.optionsOrders.filter(o => o.state === "filled")) {
-            const leg  = o.legs?.[0] || {};
-            const execs = leg.executions || [];
-            const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
-            const avgPx    = totalQty > 0
-              ? execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty
-              : 0;
-            syncBatch.push({
-              type: 'TRANSACTION',
-              payload: {
-                ticker:       o.chain_symbol || "UNKNOWN",
-                date:         o.created_at,
-                quantity:     o.quantity,
-                price:        avgPx,
-                side:         leg.side || "N/A",
-                accountLabel: label,
-                note: `${o.quantity} ${(leg.option_type||'OPTION').toUpperCase()} $${leg.strike_price} EXP ${leg.expiration_date}`
-              }
-            });
+          // Sync ALL legs of each options order (multi-leg spreads = multiple rows)
+          for (const o of data.optionsOrders.filter(o => ["filled","partially_filled"].includes(o.state))) {
+            const legs    = o.legs || [];
+            const numLegs = legs.length || 1;
+            for (const leg of legs) {
+              const execs    = leg.executions || [];
+              const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
+              const avgPx    = totalQty > 0
+                ? execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty
+                : Number(o.processed_premium || 0) / numLegs;
+              syncBatch.push({
+                type: 'TRANSACTION',
+                payload: {
+                  ticker:       o.chain_symbol || "UNKNOWN",
+                  date:         o.created_at,
+                  quantity:     o.quantity,
+                  price:        avgPx,
+                  side:         leg.side || "N/A",
+                  accountLabel: label,
+                  note: `${o.quantity} ${(leg.option_type||'OPTION').toUpperCase()} $${leg.strike_price} EXP ${leg.expiration_date}`
+                }
+              });
+            }
           }
         }
       }

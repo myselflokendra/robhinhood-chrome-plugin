@@ -77,24 +77,41 @@ function normalizeTransactions(stockOrders, optionsOrders, symbolMap = new Map()
     .filter(r => r.Symbol !== "");  // drop blank-symbol rows
 
   const optRows = optionsOrders
-    .filter(o => o.state === "filled")
-    .flatMap(o => (o.legs || []).map(leg => {
-      const execs = leg.executions || [];
-      const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
-      const avgPrice = totalQty > 0
-        ? execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty
-        : Number(o.processed_premium || 0);
+    .filter(o => ["filled", "partially_filled"].includes(o.state))
+    .flatMap(o => {
+      const legs = o.legs || [];
+      const numLegs = legs.length || 1;
 
-      return {
-        _rawDate: o.created_at || "",
-        Date:     formatDate(o.created_at),
-        Quantity: Number(o.quantity || 1),
-        Price:    avgPrice,
-        Type:     leg.side === "buy" ? "Buy" : "Sell",
-        Entity:   "Option",
-        Symbol:   o.chain_symbol || ""
-      };
-    }))
+      return legs.map(leg => {
+        // Leg-specific executions → weighted average price
+        const execs = leg.executions || [];
+        const totalQty = execs.reduce((s, e) => s + Number(e.quantity), 0);
+        let avgPrice;
+        if (totalQty > 0) {
+          avgPrice = execs.reduce((s, e) => s + Number(e.price) * Number(e.quantity), 0) / totalQty;
+        } else {
+          // Fallback: split order-level premium equally across legs
+          avgPrice = Number(o.processed_premium || 0) / numLegs;
+        }
+
+        // Build a unique, readable symbol: e.g.  AMD 150C  or  AMD 160P
+        const optType  = (leg.option_type || "").toLowerCase(); // "call" | "put"
+        const strike   = leg.strike_price   ? `$${parseFloat(leg.strike_price).toFixed(0)}`   : "";
+        const expiry   = leg.expiration_date ? formatDate(leg.expiration_date) : "";
+        const symbol   = [o.chain_symbol, strike, optType === "call" ? "Call" : optType === "put" ? "Put" : optType, expiry]
+                           .filter(Boolean).join(" ");
+
+        return {
+          _rawDate: o.created_at || "",
+          Date:     formatDate(o.created_at),
+          Quantity: Number(o.quantity || 1),
+          Price:    avgPrice,
+          Type:     leg.side === "buy" ? "Buy" : "Sell",
+          Entity:   "Option",
+          Symbol:   symbol || o.chain_symbol || ""
+        };
+      });
+    })
     .filter(r => r.Symbol !== "");
 
   return [...stockRows, ...optRows]
