@@ -1,19 +1,18 @@
 <button id="rh-close-btn">&times;</button>
 <h2>Robinhood Exporter</h2>
 
+<!-- Scrollable account sections -->
 <div class="rh-main-grid">
-  <!-- INDIVIDUAL SECTION -->
+  <!-- INDIVIDUAL -->
   <div class="rh-account-block">
     <div class="rh-account-header">Individual</div>
-
     <div class="rh-sub-section">
       <div class="rh-sub-title">Current Holdings</div>
-      <div class="rh-control-group">
+      <div class="rh-control-grid">
         <label><input type="checkbox" id="ind_h_stocks"> Stocks</label>
         <label><input type="checkbox" id="ind_h_crypto"> Crypto</label>
       </div>
     </div>
-
     <div class="rh-sub-section">
       <div class="rh-sub-title">Transactions</div>
       <div class="rh-control-grid">
@@ -21,24 +20,22 @@
         <label><input type="checkbox" id="ind_t_options"> Options</label>
         <label><input type="checkbox" id="ind_t_crypto">  Crypto</label>
         <label><input type="checkbox" id="ind_t_div">     Dividend</label>
-        <label><input type="checkbox" id="ind_t_dep">     Amount Deposited</label>
-        <label><input type="checkbox" id="ind_t_bonus">   Bonus Credited</label>
+        <label><input type="checkbox" id="ind_t_dep">     Deposited</label>
+        <label><input type="checkbox" id="ind_t_bonus">   Bonus</label>
       </div>
     </div>
   </div>
 
-  <!-- IRA SECTION -->
+  <!-- IRA -->
   <div class="rh-account-block">
     <div class="rh-account-header">IRA</div>
-
     <div class="rh-sub-section">
       <div class="rh-sub-title">Current Holdings</div>
-      <div class="rh-control-group">
+      <div class="rh-control-grid">
         <label><input type="checkbox" id="ira_h_stocks"> Stocks</label>
         <label><input type="checkbox" id="ira_h_crypto"> Crypto</label>
       </div>
     </div>
-
     <div class="rh-sub-section">
       <div class="rh-sub-title">Transactions</div>
       <div class="rh-control-grid">
@@ -46,40 +43,27 @@
         <label><input type="checkbox" id="ira_t_options"> Options</label>
         <label><input type="checkbox" id="ira_t_crypto">  Crypto</label>
         <label><input type="checkbox" id="ira_t_div">     Dividend</label>
-        <label><input type="checkbox" id="ira_t_dep">     Amount Deposited</label>
-        <label><input type="checkbox" id="ira_t_bonus">   Bonus Credited</label>
+        <label><input type="checkbox" id="ira_t_dep">     Deposited</label>
+        <label><input type="checkbox" id="ira_t_bonus">   Bonus</label>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Sticky footer -->
 <div class="rh-footer">
-  <div class="rh-date-picker">
-    <label for="rh-cutoff-date">From Date</label>
-    <input type="date" id="rh-cutoff-date">
+  <div class="rh-date-row">
+    <label for="rh-cutoff-date" class="rh-footer-label">From Date</label>
+    <input type="date" id="rh-cutoff-date" class="rh-date-input">
   </div>
 
-  <!-- CSV download toggle -->
-  <div class="rh-option-row">
-    <label for="download_csv" class="rh-option-label">Download CSV</label>
-    <label class="rh-toggle-switch">
-      <input type="checkbox" id="download_csv">
-      <span class="rh-toggle-slider"></span>
-    </label>
+  <div class="rh-footer-checks">
+    <label><input type="checkbox" id="download_csv"> Download CSV</label>
+    <label><input type="checkbox" id="google_sync"> Sync to Google Sheets</label>
   </div>
 
-  <!-- Google Sheets sync -->
-  <div class="rh-option-row">
-    <label for="google_sync" class="rh-option-label">Sync to Google Sheets</label>
-    <label class="rh-toggle-switch">
-      <input type="checkbox" id="google_sync">
-      <span class="rh-toggle-slider"></span>
-    </label>
-  </div>
-
-  <!-- Sheets owner dropdown — hidden until sync is enabled -->
-  <div class="rh-option-row" id="rh-sheets-owner-row" style="display:none;">
-    <label for="rh-sheets-owner" class="rh-option-label">Sheets Account</label>
+  <div class="rh-sheets-row" id="rh-sheets-owner-row">
+    <label for="rh-sheets-owner" class="rh-footer-label">Sheets Account</label>
     <select id="rh-sheets-owner" class="rh-select">
       <option value="deepika_prod">Deepika — Production</option>
       <option value="lokendra_prod">Lokendra — Production</option>

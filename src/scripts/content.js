@@ -101,10 +101,10 @@ async function createOverlay() {
     if (downloadCsvEl)  downloadCsvEl.checked   = settings.downloadCsv !== false; // default true
     if (sheetsOwnerEl)  sheetsOwnerEl.value     = settings.googleSync?.sheetsOwner || "deepika_prod";
 
-    // Show/hide sheets owner when sync toggled
+    // Show/hide sheets owner row when sync toggled
     const updateSheetsOwnerVisibility = () => {
       const row = document.getElementById('rh-sheets-owner-row');
-      if (row) row.style.display = googleSyncEl?.checked ? 'flex' : 'none';
+      if (row) row.classList.toggle('visible', !!googleSyncEl?.checked);
     };
     updateSheetsOwnerVisibility();
     if (googleSyncEl) googleSyncEl.addEventListener('change', updateSheetsOwnerVisibility);
