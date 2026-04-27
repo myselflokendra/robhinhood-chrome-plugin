@@ -234,7 +234,9 @@ async function handleBatchSync(items, tabId) {
       // TRANSACTIONS PROCESSING (Surgical Shift)
       // ==========================================
       reportProgress(`☁️ Syncing data into ${sheetName}...`);
-      const data = await callSheetsAPI(`/values/${encodeURIComponent(sheetName)}!A:V`, 'GET');
+      // FORMULA render option preserves formula strings (=A2*B2) so the PUT
+      // below doesn't replace them with their last-computed numeric values.
+      const data = await callSheetsAPI(`/values/${encodeURIComponent(sheetName)}!A:V?valueRenderOption=FORMULA`, 'GET');
       const currentValues = data.values || [];
       if (currentValues.length === 0) currentValues.push(new Array(22).fill("")); // Ensure at least a header row exists
       
