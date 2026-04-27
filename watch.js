@@ -3,9 +3,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const SRC_DIR = path.join(__dirname, 'src');
 const DIST_DIR = path.join(__dirname, 'dist');
-const ASSETS = ['popup.html', 'popup.css'];
+const ASSETS_MAP = [
+  { src: 'src/ui/popup.html', dist: 'popup.html' },
+  { src: 'src/ui/popup.css', dist: 'popup.css' },
+  { src: 'src/assets/icon.png', dist: 'icon.png' },
+  { src: 'manifest.json', dist: 'manifest.json' }
+];
 
 // Ensure dist exists
 if (!fs.existsSync(DIST_DIR)) {
@@ -20,8 +24,8 @@ function startEsbuild() {
 
   const esbuild = spawn('npx', [
     'esbuild',
-    'src/content.js',
-    'src/interceptor.js',
+    'src/scripts/content.js',
+    'src/scripts/interceptor.js',
     '--bundle',
     '--outdir=dist',
     '--format=iife',
@@ -40,17 +44,17 @@ function startEsbuild() {
 /**
  * 📂 COPY ASSETS
  */
-function copyAsset(filename) {
-  const srcPath = path.join(SRC_DIR, filename);
-  const distPath = path.join(DIST_DIR, filename);
+function copyAsset(asset) {
+  const srcPath = path.join(__dirname, asset.src);
+  const distPath = path.join(DIST_DIR, asset.dist);
 
   try {
     if (fs.existsSync(srcPath)) {
       fs.copyFileSync(srcPath, distPath);
-      console.log(`✅ Copied ${filename} to dist/`);
+      console.log(`✅ Copied ${asset.src} to dist/${asset.dist}`);
     }
   } catch (err) {
-    console.error(`❌ Error copying ${filename}:`, err.message);
+    console.error(`❌ Error copying ${asset.src}:`, err.message);
   }
 }
 
@@ -58,17 +62,28 @@ function copyAsset(filename) {
  * 🧭 WATCH ASSETS
  */
 function watchAssets() {
-  console.log('📂 Watching UI assets for changes...');
+  console.log('📂 Watching assets for changes...');
   
   // Initial copy
-  ASSETS.forEach(copyAsset);
+  ASSETS_MAP.forEach(copyAsset);
 
-  // Watch for changes
-  fs.watch(SRC_DIR, (eventType, filename) => {
-    if (filename && ASSETS.includes(filename)) {
-      console.log(`🔄 ${filename} changed, re-copying...`);
-      copyAsset(filename);
-    }
+  // Watch for changes recursively in src and root for manifest
+  const watchPaths = [
+    path.join(__dirname, 'src/ui'),
+    path.join(__dirname, 'src/assets'),
+    path.join(__dirname, 'manifest.json')
+  ];
+
+  watchPaths.forEach(watchPath => {
+    if (!fs.existsSync(watchPath)) return;
+    
+    fs.watch(watchPath, (eventType, filename) => {
+      const asset = ASSETS_MAP.find(a => a.src.includes(filename) || path.basename(a.src) === filename);
+      if (asset) {
+        console.log(`🔄 ${filename} changed, re-copying...`);
+        copyAsset(asset);
+      }
+    });
   });
 }
 
